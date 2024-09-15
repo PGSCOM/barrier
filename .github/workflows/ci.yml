@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python (Linux and macOS)
+        if: matrix.os != 'windows-latest'
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Set up .NET (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: '5.x'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y some-dependencies-package
+        if: matrix.os == 'ubuntu-latest'
+
+      - name: Build project
+        run: |
+          ./build.sh
+        if: matrix.os != 'windows-latest'
+
+      - name: Build project (Windows)
+        run: |
+          build_installer.bat
+        if: matrix.os == 'windows-latest'
+
+      - name: Run tests
+        run: |
+          ./run-tests.sh
+        if: matrix.os != 'windows-latest'
+
+      - name: Run tests (Windows)
+        run: |
+          run-tests.bat
+        if: matrix.os == 'windows-latest'
+
+      - name: Upload artifact (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.os }}
+          path: ./build/output/ # Ajusta la ruta a donde se genera la build en tu proyecto
+
+      - name: Upload artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-windows
+          path: ./build/output/ # Ajusta la ruta a donde se genera la build en Windows
